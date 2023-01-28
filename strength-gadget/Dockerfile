@@ -11,3 +11,4 @@ RUN unzip $FILE_NAME -d sam-installation
 RUN sudo ./sam-installation/install
 RUN sam --version
 
+RUN echo hello
