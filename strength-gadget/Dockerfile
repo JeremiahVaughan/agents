@@ -10,3 +10,5 @@ RUN echo "$EXPECTED_SHAW $FILE_NAME" | sha256sum --check
 RUN unzip $FILE_NAME -d sam-installation
 RUN sudo ./sam-installation/install
 RUN sam --version
+
+COPY .aws /home/circleci/.aws
