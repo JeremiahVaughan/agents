@@ -1,1 +1,1 @@
-This repo produces images used to execute CICD operations
+This repo produces images used to execute CICD operations.
