@@ -1,5 +1,10 @@
 version: 2.1
 
+parameters:
+  strength-gadget-files-changed:
+    type: boolean
+    default: false
+
 jobs:
   strength-gadget-build:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
