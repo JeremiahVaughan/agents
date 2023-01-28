@@ -15,6 +15,5 @@ workflows:
                 - staging
           mapping: |
             strength-gadget/.* strength-gadget-files-changed true
-
-          # Once changes are merged to master, then the mappings will stop reading as dirty.
+          # Once changes are merged to main, then the mappings will stop reading as dirty.
           base-revision: origin/main

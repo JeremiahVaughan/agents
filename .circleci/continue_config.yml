@@ -1,3 +1,9 @@
+version: 2.1
+
+parameters:
+  strength-gadget-files-changed:
+    type: boolean
+    default: false
 
 jobs:
   strength-gadget-build:
@@ -15,7 +21,7 @@ jobs:
       - run:
           name: "Build Pipeline Run Image"
           command: >
-            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin &&
+            echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin &&
             docker build -t piegarden/strength-gadget-agent -f strength-gadget/Dockerfile strength-gadget/. &&
             docker push piegarden/strength-gadget-agent
 
