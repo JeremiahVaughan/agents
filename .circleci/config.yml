@@ -1,0 +1,20 @@
+version: 2.1
+
+setup: true
+
+orbs:
+  path-filtering: circleci/path-filtering@0.0.1
+
+workflows:
+  setup-workflow:
+    jobs:
+      - path-filtering/filter:
+          filters:
+            branches:
+              only:
+                - staging
+          mapping: |
+            strength-gadget/.* strength-gadget-files-changed true
+
+          # Once changes are merged to master, then the mappings will stop reading as dirty.
+          base-revision: origin/main

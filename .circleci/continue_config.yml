@@ -1,0 +1,31 @@
+
+jobs:
+  strength-gadget-build:
+    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+    docker:
+      - image: cimg/base:current
+    # Add steps to the job
+    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+    steps:
+      - setup_remote_docker:
+          version: 20.10.14
+          docker_layer_caching: true
+      - checkout
+      - run:
+          name: "Build Pipeline Run Image"
+          command: >
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin &&
+            docker build -t piegarden/strength-gadget-agent -f strength-gadget/Dockerfile strength-gadget/. &&
+            docker push piegarden/strength-gadget-agent
+
+
+
+
+workflows:
+  strength-gadget:
+    when: << pipeline.parameters.strength-gadget-files-changed >>
+    jobs:
+      - strength-gadget-build:
+          context: docker-hub-creds
+          name: strength-gadget-build
