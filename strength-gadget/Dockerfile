@@ -9,7 +9,6 @@ ENV TERRAFORM_VERSION="1.3.8"
 ENV FILE_NAME="terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
 # Get hashes from https://releases.hashicorp.com/terraform/1.3.8/terraform_1.3.8_SHA256SUMS
 RUN wget "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/${FILE_NAME}"
-RUN sha256sum $FILE_NAME | sha256sum --check --status
 RUN echo "$EXPECTED_SHAW $FILE_NAME" | sha256sum --check
 RUN unzip $FILE_NAME -d terraform
 RUN mv terraform/terraform /usr/bin/
@@ -22,7 +21,6 @@ ENV TERRAGRUNT_VERSION="0.43.2"
 ENV FILE_NAME="terragrunt_linux_amd64"
 # Get hashes from https://github.com/gruntwork-io/terragrunt/releases
 RUN wget "https://github.com/gruntwork-io/terragrunt/releases/download/v${TERRAGRUNT_VERSION}/terragrunt_linux_amd64"
-RUN sha256sum $FILE_NAME | sha256sum --check --status
 RUN echo "$EXPECTED_SHAW $FILE_NAME" | sha256sum --check
 RUN chmod 700 $FILE_NAME
 RUN mv $FILE_NAME /usr/bin/terragrunt
@@ -35,7 +33,6 @@ ENV GOLANG_VERSION="1.20"
 ENV FILE_NAME="go${GOLANG_VERSION}.linux-amd64.tar.gz"
 # Get hashes from https://go.dev/dl/
 RUN wget "https://go.dev/dl/go1.20.linux-amd64.tar.gz"
-RUN sha256sum $FILE_NAME | sha256sum --check --status
 RUN echo "$EXPECTED_SHAW $FILE_NAME" | sha256sum --check
 RUN rm -rf /usr/local/go && tar -C /usr/local -xzf "go${GOLANG_VERSION}.linux-amd64.tar.gz"
 ENV PATH=$PATH:/usr/local/go/bin
@@ -48,7 +45,6 @@ ENV FILE_NAME="node-v${NODE_VERSION}-linux-x64.tar.xz"
 # Get hashes from https://nodejs.org/en/download/
 ### Install Node ###
 RUN wget "https://nodejs.org/dist/v${NODE_VERSION}/${FILE_NAME}"
-RUN sha256sum $FILE_NAME | sha256sum --check --status
 RUN echo "$EXPECTED_SHAW $FILE_NAME" | sha256sum --check
 RUN tar -xf $FILE_NAME
 ENV PATH=$PATH:"/node-v${NODE_VERSION}-linux-x64/bin"
