@@ -1,6 +1,6 @@
 FROM ubuntu
 
-RUN apt-get update && apt-get install wget lsb-core unzip zip -y
+RUN apt-get update && apt-get install wget lsb-core unzip zip jq -y
 
 
 ### Install Terraform ###
