@@ -49,3 +49,19 @@ RUN echo "$EXPECTED_SHAW $FILE_NAME" | sha256sum --check
 RUN tar -xf $FILE_NAME
 ENV PATH=$PATH:"/node-v${NODE_VERSION}-linux-x64/bin"
 RUN node -v
+
+
+RUN mkdir -p /workspace
+WORKDIR /workspace
+COPY aws-cli-integrity-key .
+ENV GNUGP_KEY_FILE="aws-cli-integrity-key"
+ENV FILE_NAME="awscli-exe-linux-x86_64.zip"
+ENV FILE_SIGNATURE_NAME="$FILE_NAME.sig"
+# Get hashes from https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+RUN wget "https://awscli.amazonaws.com/$FILE_NAME"
+RUN wget "https://awscli.amazonaws.com/$FILE_SIGNATURE_NAME"
+RUN gpg --import $GNUGP_KEY_FILE
+RUN gpg --verify $FILE_SIGNATURE_NAME $FILE_NAME
+RUN unzip $FILE_NAME
+RUN ./aws/install
+RUN aws --version
