@@ -37,6 +37,8 @@ RUN echo "$EXPECTED_SHAW $FILE_NAME" | sha256sum --check
 RUN rm -rf /usr/local/go && tar -C /usr/local -xzf "go${GOLANG_VERSION}.linux-amd64.tar.gz"
 ENV PATH=$PATH:/usr/local/go/bin
 RUN go version
+# Needed for pipeline script
+RUN go install github.com/aws/aws-sdk-go
 
 
 ENV EXPECTED_SHAW="1ccec74b6240fce8754813e31fdbc93ad520df2e814729cea29efe9075e48350"
