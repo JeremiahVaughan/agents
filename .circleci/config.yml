@@ -1,23 +1,27 @@
 version: 2.1
 
+jobs:
+  strength-gadget-build:
+    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+    docker:
+      - image: cimg/base:current
+    # Add steps to the job
+    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+    steps:
+      - setup_remote_docker:
+          version: 20.10.14
+          docker_layer_caching: true
+      - checkout
+      - run:
+          name: "Build Pipeline Run Image"
+          command: >
+            echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin &&
+            docker build -t "$DOCKER_USER/strength-gadget-agent" -f strength-gadget/Dockerfile strength-gadget/. &&
+            docker push "$DOCKER_USER/strength-gadget-agent"
+
 workflows:
   strength-gadget:
     jobs:
       - strength-gadget-build:
-          # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-          # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
-          docker:
-            - image: cimg/base:current
-          # Add steps to the job
-          # See: https://circleci.com/docs/2.0/configuration-reference/#steps
-          steps:
-            - setup_remote_docker:
-                version: 20.10.14
-                docker_layer_caching: true
-            - checkout
-            - run:
-                name: "Build Pipeline Run Image"
-                command: >
-                  echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin &&
-                  docker build -t "$DOCKER_USER/strength-gadget-agent" -f strength-gadget/Dockerfile strength-gadget/. &&
-                  docker push "$DOCKER_USER/strength-gadget-agent"
+          context: docker-hub-creds
