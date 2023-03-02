@@ -79,15 +79,11 @@ RUN aws --version
 
 
 # Deployer
-RUN mkdir -p /workspace/deployer
-WORKDIR /workspace/deployer
-COPY deployer/go.mod .
-COPY deployer/go.sum .
+COPY go.mod .
+COPY go.sum .
 RUN go mod download && go mod verify
 
 COPY . .
-RUN pwd
-RUN ls
 RUN go test ./...
 RUN go build -o /usr/local/bin/deploy .
 
