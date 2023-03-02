@@ -86,8 +86,10 @@ COPY deployer/go.sum .
 RUN go mod download && go mod verify
 
 COPY . .
+RUN pwd
+RUN ls
 RUN go test ./...
-RUN go build -o /usr/local/bin/deploy
+RUN go build -o /usr/local/bin/deploy .
 
 
 CMD ["deploy"]
