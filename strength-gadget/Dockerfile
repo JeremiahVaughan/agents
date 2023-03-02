@@ -3,6 +3,7 @@ FROM ubuntu
 RUN apt-get update && apt-get install wget lsb-core unzip zip jq zsh -y
 
 
+# todo this isn't needed with jenkins
 ### Install Github CLI ###
 # Get install instructions from https://github.com/cli/cli/blob/trunk/docs/install_linux.md
 RUN type -p curl >/dev/null || apt-get install curl -y && \
@@ -47,9 +48,6 @@ RUN echo "$EXPECTED_SHAW $FILE_NAME" | sha256sum --check
 RUN rm -rf /usr/local/go && tar -C /usr/local -xzf "go${GOLANG_VERSION}.linux-amd64.tar.gz"
 ENV PATH=$PATH:/usr/local/go/bin
 RUN go version
-# Needed for pipeline script
-# todo get this working
-#RUN go install github.com/aws/aws-sdk-go@latest
 
 
 ### Install Node ###
@@ -63,7 +61,7 @@ RUN tar -xf $FILE_NAME
 ENV PATH=$PATH:"/node-v${NODE_VERSION}-linux-x64/bin"
 RUN node -v
 
-
+# todo this isn't needed once you get everything fromthe deploy.sh script into the deploy.go script
 RUN mkdir -p /workspace
 WORKDIR /workspace
 COPY aws-cli-integrity-key .
@@ -78,3 +76,19 @@ RUN gpg --verify $FILE_SIGNATURE_NAME $FILE_NAME
 RUN unzip $FILE_NAME
 RUN ./aws/install
 RUN aws --version
+
+
+# Deployer
+RUN mkdir -p /workspace/deployer
+WORKDIR /workspace/deployer
+COPY go.mod .
+COPY go.sum .
+RUN go mod download && go mod verify
+
+COPY . .
+RUN go test ./...
+RUN go build -o /usr/local/bin/deploy
+
+
+CMD ["deploy"]
+
