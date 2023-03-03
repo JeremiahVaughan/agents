@@ -85,7 +85,7 @@ RUN go mod download && go mod verify
 
 COPY . .
 RUN go test ./...
-RUN go build -o /usr/local/bin/deploy .
+RUN go build -o /usr/bin/deploy .
 
 
 CMD ["deploy"]
