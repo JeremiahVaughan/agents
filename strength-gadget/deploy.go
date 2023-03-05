@@ -50,11 +50,11 @@ type Deploy struct {
 const currentlyDeployedParamKey = "currently_deployed"
 
 func main() {
-	sess, err := session.NewSession()
+
+	err, ssmClient := getSsmClientForTerraformState()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error, when attempting to create an SSM client for Terraform State. Error: %v", err)
 	}
-	ssmClient := ssm.New(sess)
 
 	var environmentsToDeploy map[string]string
 	environmentsToDeploy, err = getEnvironmentsToDeploy(ssmClient)
@@ -80,6 +80,24 @@ func main() {
 	if err != nil {
 		log.Fatalf("error has occured when attempting to record if deployments were successful: %v", err)
 	}
+}
+
+func getSsmClientForTerraformState() (error, *ssm.SSM) {
+	err := setAwsEnvironmentVariables(
+		os.Getenv("TERRAFORM_STATE_BUCKET_REGION"),
+		os.Getenv("TERRAFORM_STATE_BUCKET_KEY"),
+		os.Getenv("TERRAFORM_STATE_BUCKET_SECRET"),
+	)
+	if err != nil {
+		log.Fatalf("error, when attempting to set terraform state credentials: %v", err)
+	}
+
+	sess, err := session.NewSession()
+	if err != nil {
+		log.Fatal(err)
+	}
+	ssmClient := ssm.New(sess)
+	return err, ssmClient
 }
 
 func recordSuccessfulDeployments(deployed map[string]string, ssmClient *ssm.SSM) error {
@@ -257,6 +275,35 @@ func deployToEnvironment(deployment Deployment) error {
 	if err != nil {
 		log.Fatalf("error has occurred when updating hashes: %v", err)
 	}
+	return nil
+}
+
+func setAwsEnvironmentVariables(region, keyId, secret string) error {
+	if region == "" {
+		return fmt.Errorf("error, must provide a region")
+	} else {
+		err := os.Setenv("AWS_REGION", region)
+		if err != nil {
+			return fmt.Errorf("error, when setting region env var. Error: %v", err)
+		}
+	}
+	if keyId == "" {
+		return fmt.Errorf("error, must provide a keyId")
+	} else {
+		err := os.Setenv("AWS_ACCESS_KEY_ID", keyId)
+		if err != nil {
+			return fmt.Errorf("error, when setting keyId env var. Error: %v", err)
+		}
+	}
+	if secret == "" {
+		return fmt.Errorf("error, must provide a secret")
+	} else {
+		err := os.Setenv("AWS_SECRET_ACCESS_KEY", secret)
+		if err != nil {
+			return fmt.Errorf("error, when setting secret env var. Error: %v", err)
+		}
+	}
+
 	return nil
 }
 
