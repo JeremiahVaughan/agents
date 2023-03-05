@@ -17,8 +17,8 @@ jobs:
           name: "Build Pipeline Run Image"
           command: >
             echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin &&
-            docker build -t "$DOCKER_USER/strength-gadget-agent" -f strength-gadget/Dockerfile strength-gadget/. &&
-            docker push "$DOCKER_USER/strength-gadget-agent"
+            docker build -t "$DOCKER_USER/strength-gadget-agent:0.0.2" -f strength-gadget/Dockerfile strength-gadget/. &&
+            docker push "$DOCKER_USER/strength-gadget-agent:0.0.2"
 
 workflows:
   strength-gadget:
