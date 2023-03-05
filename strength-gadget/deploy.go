@@ -138,6 +138,7 @@ func deployToEnvironment(deployment Deployment) error {
 	}
 	ssmClient := ssm.New(sess)
 
+	log.Printf("TESTING: %s", os.Getenv("AWS_REGION")) // todo remove
 	noHashesExistYetError := errors.New("ParameterNotFound: ")
 	sourceHashesPath := fmt.Sprintf("%s/source_hashes", deployment.Environment)
 	result, err := ssmClient.GetParameter(&ssm.GetParameterInput{
