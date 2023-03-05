@@ -19,8 +19,9 @@ import (
 )
 
 type Deployment struct {
-	Environment string
-	EnvVars     map[string]string
+	Environment    string
+	DesiredVersion string
+	EnvVars        map[string]string
 }
 
 type SourceHashes struct {
@@ -62,9 +63,9 @@ func main() {
 	}
 
 	// deploying one environment at a time todo see if you can make this happen in parallel. Not sure what to do about handling clones or checkouts
-	for _, environment := range environmentsToDeploy {
+	for environment, deploymentVersion := range environmentsToDeploy {
 		var deployment *Deployment
-		deployment, err = getEnvironmentDeploymentDetails(environment, ssmClient)
+		deployment, err = getEnvironmentDeploymentDetails(environment, deploymentVersion, ssmClient)
 		if err != nil {
 			log.Fatalf("error, when attempting to fetch environmental deployment: %v", environment)
 		}
@@ -137,13 +138,42 @@ func deployToEnvironment(deployment Deployment) error {
 		}
 	}
 
-	root, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("an unexpected error has occurred when attempting to retrieve the current working directory: %v", err)
+	var repoRoot string
+	if deployment.DesiredVersion != "latest" {
+		repoRoot = fmt.Sprintf("/tmp/repo/%s", deployment.Environment)
+		repoReadToken := os.Getenv("GIT_CLONE_TOKEN")
+		if repoReadToken == "" {
+			return fmt.Errorf("error, missing GIT_CLONE_TOKEN env var")
+		}
+		gitUserName := os.Getenv("GIT_USER_NAME")
+		if gitUserName == "" {
+			return fmt.Errorf("error, missing GIT_USER_NAME env var")
+		}
+		cmd := exec.Command(
+			"git",
+			"clone",
+			"--branch",
+			deployment.DesiredVersion,
+			"--depth",
+			"1",
+			fmt.Sprintf("https://%s:%s@git.jetbrains.space/strengthgadget/strengthgadget/strength-gadget-v4.git", gitUserName, repoReadToken),
+		)
+		cmd.Dir = repoRoot
+		var output []byte
+		output, err = cmd.Output()
+		if err != nil {
+			return fmt.Errorf("error executing command. Output: %s. Error: %v", output, err)
+		}
+	} else {
+		repoRoot, err = os.Getwd()
+		if err != nil {
+			log.Fatalf("an unexpected error has occurred when attempting to retrieve the current working directory: %v", err)
+		}
 	}
+
 	var paths []string
 	// Note, this filepath.Walk is meant to be, ran against a freshly cloned repo (e.g., during CICD). You may notice performance issues when running locally due to the existence of heavy directories like node_modules.
-	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(repoRoot, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("an unexpected error has occurred when attempting to transverse the directory tree: %v", err)
 		}
@@ -274,7 +304,7 @@ func determineWhatNeedsDeploying(alreadyDeployed, wantDeployed map[string]string
 	return difference
 }
 
-func getEnvironmentDeploymentDetails(environmentName string, ssmClient *ssm.SSM) (*Deployment, error) {
+func getEnvironmentDeploymentDetails(environmentName string, deploymentVersion string, ssmClient *ssm.SSM) (*Deployment, error) {
 	param, err := ssmClient.GetParameter(&ssm.GetParameterInput{
 		Name:           aws.String(fmt.Sprintf("%s/env_vars", environmentName)),
 		WithDecryption: aws.Bool(true),
@@ -290,8 +320,9 @@ func getEnvironmentDeploymentDetails(environmentName string, ssmClient *ssm.SSM)
 	}
 
 	result := Deployment{
-		Environment: environmentName,
-		EnvVars:     envVars,
+		Environment:    environmentName,
+		DesiredVersion: deploymentVersion,
+		EnvVars:        envVars,
 	}
 	return &result, nil
 }
