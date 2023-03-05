@@ -131,6 +131,7 @@ func Test_confirmUniqueNameOfDeploymentDirectories(t *testing.T) {
 					"/home/of/the/burritos/deployment_config.json",
 				},
 			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
