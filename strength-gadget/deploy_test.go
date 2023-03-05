@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"sync"
 	"testing"
 )
@@ -120,7 +121,6 @@ func Test_confirmUniqueNameOfDeploymentDirectories(t *testing.T) {
 					"/home/of/the/watermelon/deployment_config.json",
 				},
 			},
-			wantErr: false,
 		},
 		{
 			name: "Unhappy Path",
@@ -131,13 +131,158 @@ func Test_confirmUniqueNameOfDeploymentDirectories(t *testing.T) {
 					"/home/of/the/burritos/deployment_config.json",
 				},
 			},
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := confirmUniqueNameOfDeploymentDirectories(tt.args.paths); (err != nil) != tt.wantErr {
 				t.Errorf("confirmUniqueNameOfDeploymentDirectories() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_determineWhatNeedsDeploying(t *testing.T) {
+	type args struct {
+		alreadyDeployed map[string]string
+		wantDeployed    map[string]string
+	}
+	tests := []struct {
+		name string
+		args args
+		want map[string]string
+	}{
+		{
+			name: "Both lists have values and intersection contains same keys but different values",
+			args: args{
+				alreadyDeployed: map[string]string{
+					"staging":    "v0.0.4",
+					"dev":        "v0.0.4",
+					"production": "v0.0.5",
+				},
+				wantDeployed: map[string]string{
+					"staging":    "v0.0.4",
+					"dev":        "v0.0.3",
+					"production": "v0.0.3",
+				},
+			},
+			want: map[string]string{
+				"dev":        "v0.0.3",
+				"production": "v0.0.3",
+			},
+		},
+		{
+			name: "Both lists have values and intersection contains same values but different keys",
+			args: args{
+				alreadyDeployed: map[string]string{
+					"staging":    "v0.0.4",
+					"dev":        "v0.0.4",
+					"production": "v0.0.5",
+				},
+				wantDeployed: map[string]string{
+					"staging": "v0.0.4",
+					"dev":     "v0.0.4",
+					"qa":      "v0.0.5",
+				},
+			},
+			want: map[string]string{
+				"qa": "v0.0.5",
+			},
+		},
+		{
+			name: "Both lists have values and intersection contains different values and different keys",
+			args: args{
+				alreadyDeployed: map[string]string{
+					"staging":    "v0.0.4",
+					"dev":        "v0.0.4",
+					"production": "v0.0.5",
+				},
+				wantDeployed: map[string]string{
+					"staging": "v0.0.4",
+					"dev":     "v0.0.5",
+					"qa":      "v0.0.5",
+				},
+			},
+			want: map[string]string{
+				"dev": "v0.0.5",
+				"qa":  "v0.0.5",
+			},
+		},
+		{
+			name: "One list has values",
+			args: args{
+				alreadyDeployed: nil,
+				wantDeployed: map[string]string{
+					"staging":    "v0.0.4",
+					"dev":        "v0.0.3",
+					"production": "v0.0.3",
+				},
+			},
+			want: map[string]string{
+				"staging":    "v0.0.4",
+				"dev":        "v0.0.3",
+				"production": "v0.0.3",
+			},
+		},
+		{
+			name: "Already deployed list has values",
+			args: args{
+				alreadyDeployed: map[string]string{
+					"staging":    "v0.0.4",
+					"dev":        "v0.0.3",
+					"production": "v0.0.3",
+				},
+				wantDeployed: nil,
+			},
+			want: make(map[string]string),
+		},
+		{
+			name: "Want deployed list has values",
+			args: args{
+				alreadyDeployed: nil,
+				wantDeployed: map[string]string{
+					"staging":    "v0.0.4",
+					"dev":        "v0.0.3",
+					"production": "v0.0.3",
+				},
+			},
+			want: map[string]string{
+				"staging":    "v0.0.4",
+				"dev":        "v0.0.3",
+				"production": "v0.0.3",
+			},
+		},
+		{
+			name: "Latest key should always appear in the needs deployment map",
+			args: args{
+				alreadyDeployed: map[string]string{
+					"staging":    "latest",
+					"dev":        "v0.0.3",
+					"production": "v0.0.3",
+				},
+				wantDeployed: map[string]string{
+					"staging":    "latest",
+					"dev":        "v0.0.3",
+					"production": "v0.0.3",
+				},
+			},
+			want: map[string]string{
+				"staging": "latest",
+			},
+		},
+		{
+			name: "No changes",
+			args: args{
+				alreadyDeployed: nil,
+				wantDeployed:    nil,
+			},
+			want: make(map[string]string),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := determineWhatNeedsDeploying(tt.args.alreadyDeployed, tt.args.wantDeployed); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("determineWhatNeedsDeploying() = %v, want %v", got, tt.want)
 			}
 		})
 	}

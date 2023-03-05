@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"gopkg.in/yaml.v3"
 	"io"
 	"log"
 	"os"
@@ -17,23 +18,35 @@ import (
 	"sync"
 )
 
+type Deployment struct {
+	Environment string
+	EnvVars     map[string]string
+}
+
 type SourceHashes struct {
 	Hashes sync.Map `json:"hashes"`
 }
 
 type ApiConfig struct {
-	Directory          string   `json:"directory"`
-	AllowedHttpMethods []string `json:"allowedHttpMethods"`
-	Hash               string   `json:"hash"`
+	Directory          string   `yaml:"directory"`
+	AllowedHttpMethods []string `yaml:"allowedHttpMethods"`
+	Hash               string   `yaml:"hash"`
 }
 
 type UiConfig struct {
-	Directory string `json:"directory"`
+	Directory string `yaml:"directory"`
 }
 
 type ConfigType struct {
 	Type string `json:"type"`
 }
+
+type Deploy struct {
+	Environments                map[string]string `yaml:"environments"`
+	AlreadyDeployedEnvironments map[string]string `yaml:"alreadyDeployedEnvironments"`
+}
+
+const currentlyDeployedParamKey = "currently_deployed"
 
 func main() {
 	sess, err := session.NewSession()
@@ -42,8 +55,72 @@ func main() {
 	}
 	ssmClient := ssm.New(sess)
 
+	var environmentsToDeploy map[string]string
+	environmentsToDeploy, err = getEnvironmentsToDeploy(ssmClient)
+	if err != nil {
+		log.Fatalf("error when attempting to fetch environments to deploy to. Error: %v", err)
+	}
+
+	// deploying one environment at a time todo see if you can make this happen in parallel. Not sure what to do about handling clones or checkouts
+	for _, environment := range environmentsToDeploy {
+		var deployment *Deployment
+		deployment, err = getEnvironmentDeploymentDetails(environment, ssmClient)
+		if err != nil {
+			log.Fatalf("error, when attempting to fetch environmental deployment: %v", environment)
+		}
+
+		err = deployToEnvironment(*deployment)
+		if err != nil {
+			log.Fatalf("error when attempting to deploy to environment: %s. Error: %v", environment, err)
+		}
+	}
+
+	err = recordSuccessfulDeployments(environmentsToDeploy, ssmClient)
+	if err != nil {
+		log.Fatalf("error has occured when attempting to record if deployments were successful: %v", err)
+	}
+}
+
+func recordSuccessfulDeployments(deployed map[string]string, ssmClient *ssm.SSM) error {
+	deployedMarshalled, err := json.Marshal(deployed)
+	if err != nil {
+		return fmt.Errorf("error, when attempting to marshall what was deployed: %v", err)
+	}
+
+	currentlyDeployed := currentlyDeployedParamKey
+	result := string(deployedMarshalled)
+	parameterTypeString := ssm.ParameterTypeString
+	overwrite := true
+	input := &ssm.PutParameterInput{
+		Name:      &currentlyDeployed,
+		Type:      &parameterTypeString,
+		Value:     &result,
+		Overwrite: &overwrite,
+	}
+	_, err = ssmClient.PutParameter(input)
+	if err != nil {
+		return fmt.Errorf("error happend when attempting to record hashes to aws param store: %v", err)
+	}
+
+	return nil
+}
+
+func deployToEnvironment(deployment Deployment) error {
+	for key, value := range deployment.EnvVars {
+		err := os.Setenv(key, value)
+		if err != nil {
+			return fmt.Errorf("error, when attempting to set environmental variable: %s. Error: %v", key, err)
+		}
+	}
+
+	sess, err := session.NewSession()
+	if err != nil {
+		log.Fatal(err)
+	}
+	ssmClient := ssm.New(sess)
+
 	noHashesExistYetError := errors.New("ParameterNotFound: ")
-	sourceHashesPath := "source_hashes"
+	sourceHashesPath := fmt.Sprintf("%s/source_hashes", deployment.Environment)
 	result, err := ssmClient.GetParameter(&ssm.GetParameterInput{
 		Name:           aws.String(sourceHashesPath),
 		WithDecryption: aws.Bool(true),
@@ -73,7 +150,7 @@ func main() {
 		if info.IsDir() {
 			return nil
 		}
-		if info.Name() == "deployment_config.json" {
+		if info.Name() == "deployment_config.yml" || info.Name() == "deployment_config.yaml" {
 			paths = append(paths, path)
 		}
 		return nil
@@ -82,7 +159,7 @@ func main() {
 		log.Fatalf("an unexpected error has occurred when attempting to identify directories containing deployment configs: %v", err)
 	}
 	if len(paths) == 0 {
-		log.Fatalf("must have at least one file in the mono-repo named: \"deployment_config.json\" for something to deploy")
+		log.Fatalf("must have at least one file in the mono-repo named: \"deployment_config.y(a)ml\" for something to deploy")
 	}
 
 	// Ensure all directories containing a deployment_config.json file have a unique name
@@ -121,7 +198,7 @@ func main() {
 
 				if *isApiConfigType {
 
-					err = generateApiArtifact(p)
+					err = generateApiArtifact(p, deployment.Environment)
 					if err != nil {
 						log.Fatalf("error has happend when attempting to generate an API artifact: %v", err)
 					}
@@ -141,7 +218,7 @@ func main() {
 	}
 	waitGroup.Wait()
 
-	err = writeApiConfigsToFile(apiConfigs)
+	err = writeApiConfigsToFile(apiConfigs, deployment.Environment)
 	if err != nil {
 		log.Fatalf("error has occurred when writing API configs to a file: %v", err)
 	}
@@ -150,6 +227,73 @@ func main() {
 	if err != nil {
 		log.Fatalf("error has occurred when updating hashes: %v", err)
 	}
+	return nil
+}
+
+func getEnvironmentsToDeploy(ssmClient *ssm.SSM) (map[string]string, error) {
+	file, err := os.ReadFile("deployed.yml")
+	if err != nil {
+		log.Fatalf("error has happend when attempting to open the deployed.yml file: %v", err)
+	}
+	var deployed Deploy
+	err = yaml.Unmarshal(file, &deployed)
+	if err != nil {
+		return nil, fmt.Errorf("error has occurred when unmarshalling the deployed.yml file: %v", err)
+	}
+
+	param, err := ssmClient.GetParameter(&ssm.GetParameterInput{
+		Name:           aws.String(fmt.Sprintf(currentlyDeployedParamKey)),
+		WithDecryption: aws.Bool(true),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("an unexpected error has occurred when attempting to fetch an aws param: %v", err)
+	}
+
+	var currentlyDeployed map[string]string
+	err = json.Unmarshal([]byte(*param.Parameter.Value), &currentlyDeployed)
+	if err != nil {
+		return nil, fmt.Errorf("error, when attempting to unmarshall what is currently deployed. Error: %v", err)
+	}
+
+	needsDeployment := determineWhatNeedsDeploying(currentlyDeployed, deployed.AlreadyDeployedEnvironments)
+
+	return needsDeployment, nil
+}
+
+func determineWhatNeedsDeploying(alreadyDeployed, wantDeployed map[string]string) map[string]string {
+	difference := make(map[string]string)
+
+	for k, v := range wantDeployed {
+		if wantDeployed[k] == "latest" {
+			difference[k] = v
+		} else if v2, ok := alreadyDeployed[k]; !ok || v2 != v {
+			difference[k] = v
+		}
+	}
+
+	return difference
+}
+
+func getEnvironmentDeploymentDetails(environmentName string, ssmClient *ssm.SSM) (*Deployment, error) {
+	param, err := ssmClient.GetParameter(&ssm.GetParameterInput{
+		Name:           aws.String(fmt.Sprintf("%s/env_vars", environmentName)),
+		WithDecryption: aws.Bool(true),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("an unexpected error has occurred when attempting to fetch aws params: %v", err)
+	}
+
+	var envVars map[string]string
+	err = json.Unmarshal([]byte(*param.Parameter.Value), &envVars)
+	if err != nil {
+		return nil, fmt.Errorf("error, when attempting to unmarshall the environmental variables. Error: %v", err)
+	}
+
+	result := Deployment{
+		Environment: environmentName,
+		EnvVars:     envVars,
+	}
+	return &result, nil
 }
 
 func confirmUniqueNameOfDeploymentDirectories(paths []string) error {
@@ -195,8 +339,8 @@ func updateHashes(hashes *SourceHashes, ssmClient *ssm.SSM, sourceHashesPath str
 	return nil
 }
 
-func generateApiArtifact(path string) error {
-	outputDir := fmt.Sprintf("/tmp/lambdas/%s", getLowestDirectory(path))
+func generateApiArtifact(path string, env string) error {
+	outputDir := fmt.Sprintf("/tmp/%s/lambdas/%s", env, getLowestDirectory(path))
 	cmd := fmt.Sprintf("go mod tidy && GOOS=linux GOARCH=amd64 go build -o %s/app main.go", outputDir)
 	c := exec.Command("sh", "-c", cmd)
 	c.Dir = filepath.Dir(path)
@@ -214,13 +358,13 @@ func generateApiArtifact(path string) error {
 	return nil
 }
 
-func writeApiConfigsToFile(result []ApiConfig) error {
+func writeApiConfigsToFile(result []ApiConfig, env string) error {
 	data, err := json.Marshal(result)
 	if err != nil {
 		return fmt.Errorf("error has happend when attempting to marshall the configurations into a json string: %v", err)
 	}
 
-	file, err := os.Create("/tmp/lambda_configs.json")
+	file, err := os.Create(fmt.Sprintf("/tmp/%s/lambda_configs.json", env))
 	if err != nil {
 		return fmt.Errorf("error has happend when attempting to create the file: %v", err)
 	}
