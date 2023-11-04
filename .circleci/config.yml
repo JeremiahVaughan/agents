@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  strength-gadget-build:
+  one-password-agent-build:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
@@ -14,14 +14,16 @@ jobs:
           docker_layer_caching: true
       - checkout
       - run:
-          name: "Build Pipeline Run Image"
+          name: "Build One Password Run Image"
+          environment:
+            VERSION: "0.0.1"
           command: >
             echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin &&
-            docker build -t "$DOCKER_USER/strength-gadget-agent:0.0.2" -f strength-gadget/Dockerfile strength-gadget/. &&
-            docker push "$DOCKER_USER/strength-gadget-agent:0.0.2"
+            docker build -t "$DOCKER_USER/1password-cli:$VERSION" -f one_password/Dockerfile one_password/. &&
+            docker push "$DOCKER_USER/1password-cli:$VERSION"
 
 workflows:
-  strength-gadget:
+  one-password-agent:
     jobs:
-      - strength-gadget-build:
+      - one-password-agent-build:
           context: docker-hub-creds
