@@ -1,6 +1,6 @@
 FROM public.ecr.aws/docker/library/alpine:3.18.4 as builder
 
-RUN echo "hello world"
+RUN echo https://downloads.1password.com/linux/alpinelinux/stable/ >> /etc/apk/repositories
 
 ## Install 1password
 #RUN echo https://downloads.1password.com/linux/alpinelinux/stable/ >> /etc/apk/repositories && \
