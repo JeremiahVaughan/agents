@@ -20,7 +20,8 @@ jobs:
             echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin &&
             cd one_password &&
             docker buildx create --use &&
-            docker buildx build --platform linux/amd64,linux/arm64 --push -t "$DOCKER_USER/1password-cli:$VERSION" .
+            docker buildx build --platform linux/arm64 --push -t "$DOCKER_USER/1password-cli:$VERSION" .
+#            docker buildx build --platform linux/amd64,linux/arm64 --push -t "$DOCKER_USER/1password-cli:$VERSION" .
 #  one-password-agent-build-arm:
 #    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
 #    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
