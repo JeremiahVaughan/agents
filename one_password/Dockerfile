@@ -24,11 +24,11 @@ ARG ARCH
 RUN ARCH="arm64" && \
     wget "https://cache.agilebits.com/dist/1P/op2/pkg/v2.20.0/op_linux_${ARCH}_v2.20.0.zip" -O op.zip && \
     unzip -d op op.zip && \
-    sudo mv op/op /usr/local/bin && \
+    mv op/op /usr/local/bin && \
     rm -r op.zip op && \
-    sudo groupadd -f onepassword-cli && \
-    sudo chgrp onepassword-cli /usr/local/bin/op && \
-    sudo chmod g+s /usr/local/bin/op
+    groupadd -f onepassword-cli && \
+    chgrp onepassword-cli /usr/local/bin/op && \
+    chmod g+s /usr/local/bin/op
 #
 #
 #FROM public.ecr.aws/docker/library/alpine:3.18.4
