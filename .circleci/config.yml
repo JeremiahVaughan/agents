@@ -21,11 +21,35 @@ jobs:
             echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin &&
             cd one_password &&
             docker buildx create --use &&
-            docker buildx build --platform linux/amd64,linux/arm64 --push -t "$DOCKER_USER/1password-cli:$VERSION" .
+            docker buildx build --platform linux/amd64 --push -t "$DOCKER_USER/1password-cli:$VERSION" .
+  one-password-agent-build-arm:
+    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+    docker:
+      - image: cimg/base:current
+    # Add steps to the job
+    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+    resource_class: arm.medium
+    steps:
+      - setup_remote_docker:
+          version: 20.10.14
+          docker_layer_caching: true
+      - checkout
+      - run:
+          name: "Build One Password Run Image"
+          environment:
+            VERSION: "2.22.0"
+          command: >
+            echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin &&
+            cd one_password &&
+            docker buildx create --use &&
+            docker buildx build --platform linux/arm64 --push -t "$DOCKER_USER/1password-cli:$VERSION" .
 
 
 workflows:
   one-password-agent:
     jobs:
       - one-password-agent-build:
+          context: docker-hub-creds
+      - one-password-agent-build-arm:
           context: docker-hub-creds
