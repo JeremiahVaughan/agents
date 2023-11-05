@@ -14,7 +14,7 @@ RUN case "${TARGETPLATFORM}" in \
     esac && \
     wget "https://cache.agilebits.com/dist/1P/op2/pkg/v2.20.0/op_linux_${ARCH}_v2.20.0.zip" -O op.zip && \
     unzip -d op op.zip && \
-    mv op/op /usr/local/bin
+    mv op/op /usr/bin/op
 
 
 FROM public.ecr.aws/docker/library/alpine:3.18.4
