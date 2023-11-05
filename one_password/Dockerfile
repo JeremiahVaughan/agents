@@ -1,13 +1,34 @@
 FROM public.ecr.aws/docker/library/alpine:3.18.4 as builder
 
-#RUN echo https://downloads.1password.com/linux/alpinelinux/stable/ >> /etc/apk/repositories && \
-#    wget https://downloads.1password.com/linux/keys/alpinelinux/support@1password.com-61ddfc31.rsa.pub -P /etc/apk/keys
+ARG TARGETPLATFORM
+ARG ARCH
+
 
 ## Install 1password
-RUN echo https://downloads.1password.com/linux/alpinelinux/stable/ >> /etc/apk/repositories && \
-    wget https://downloads.1password.com/linux/keys/alpinelinux/support@1password.com-61ddfc31.rsa.pub -P /etc/apk/keys && \
-    apk add 1password-cli
-#    apk update && apk add 1password-cli
+RUN case "${TARGETPLATFORM}" in \
+      "linux/amd64") ARCH="amd64" ;; \
+      "linux/arm64") ARCH="arm64" ;; \
+      "linux/386") ARCH="386" ;; \
+      "linux/arm/v7") ARCH="arm" ;; \
+      *) echo "Unsupported platform: ${TARGETPLATFORM}"; exit 1 ;; \
+    esac && \
+    wget "https://cache.agilebits.com/dist/1P/op2/pkg/v2.20.0/op_linux_${ARCH}_v2.20.0.zip" -O op.zip && \
+    unzip -d op op.zip && \
+    sudo mv op/op /usr/local/bin && \
+    rm -r op.zip op && \
+    sudo groupadd -f onepassword-cli && \
+    sudo chgrp onepassword-cli /usr/local/bin/op && \
+    sudo chmod g+s /usr/local/bin/op
+
+
+#RUN ARCH="<choose between 386/amd64/arm/arm64>" && \
+#    wget "https://cache.agilebits.com/dist/1P/op2/pkg/v2.20.0/op_linux_${ARCH}_v2.20.0.zip" -O op.zip && \
+#    unzip -d op op.zip && \
+#    sudo mv op/op /usr/local/bin && \
+#    rm -r op.zip op && \
+#    sudo groupadd -f onepassword-cli && \
+#    sudo chgrp onepassword-cli /usr/local/bin/op && \
+#    sudo chmod g+s /usr/local/bin/op
 #
 #
 #FROM public.ecr.aws/docker/library/alpine:3.18.4
