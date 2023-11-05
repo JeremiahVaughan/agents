@@ -17,16 +17,10 @@ RUN case "${TARGETPLATFORM}" in \
     mv op/op /usr/local/bin
 
 
-#RUN ARCH="arm64" && \
-#    wget "https://cache.agilebits.com/dist/1P/op2/pkg/v2.20.0/op_linux_${ARCH}_v2.20.0.zip" -O op.zip && \
-#    unzip -d op op.zip && \
-#    mv op/op /usr/local/bin
-#
-#
-#FROM public.ecr.aws/docker/library/alpine:3.18.4
-#COPY --from=builder /usr/bin/op /usr/bin/op
-#
-## Install aws-cli -- more than just a binary, also bash
-#RUN apk update && apk add --no-cache aws-cli bash
+FROM public.ecr.aws/docker/library/alpine:3.18.4
+COPY --from=builder /usr/bin/op /usr/bin/op
+
+# Install aws-cli -- more than just a binary, also bash
+RUN apk update && apk add --no-cache aws-cli bash
 
 CMD ["/bin/bash"]
