@@ -18,8 +18,10 @@ jobs:
           environment:
             VERSION: "2.22.0"
           command: >
-            echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
-            cd one_password && docker buildx build --platform linux/amd64,linux/arm64 --push -t "$DOCKER_USER/1password-cli:$VERSION" .
+            echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin &&
+            cd one_password &&
+            docker buildx build --platform linux/amd64,linux/arm64 --push -t "$DOCKER_USER/1password-cli:$VERSION" .
+
 
 workflows:
   one-password-agent:
