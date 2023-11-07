@@ -21,6 +21,6 @@ FROM public.ecr.aws/docker/library/alpine:3.18.4
 COPY --from=builder /usr/bin/op /usr/bin/op
 
 # Install aws-cli -- more than just a binary, also bash
-RUN apk update && apk add --no-cache aws-cli bash jq
+RUN apk update && apk add --no-cache aws-cli bash jq curl
 
 CMD ["/bin/bash"]
