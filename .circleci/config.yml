@@ -21,9 +21,31 @@ jobs:
             cd one_password &&
             docker buildx create --use &&
             docker buildx build --platform linux/amd64 --push -t "$DOCKER_USER/1password-cli:$VERSION" .
+  strengthgadget-frontend-agent-build:
+    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+    docker:
+      - image: cimg/base:current
+    # Add steps to the job
+    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - checkout
+      - run:
+          name: "Build Strengthgadget Frontend Run Image"
+          environment:
+            VERSION: "0.0.1"
+          command: >
+            echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin &&
+            cd strengthgadget_frontend &&
+            docker buildx create --use &&
+            docker buildx build --platform linux/amd64 --push -t "$DOCKER_USER/strengthgadget-frontend-agent:$VERSION" .
 
 workflows:
   one-password-agent:
     jobs:
       - one-password-agent-build:
+          context: docker-hub-creds
+      - strengthgadget-frontend-agent-build:
           context: docker-hub-creds
