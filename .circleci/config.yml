@@ -35,7 +35,7 @@ jobs:
       - run:
           name: "Build Cloudflared Run Image"
           environment:
-            VERSION: "2.22.0"
+            VERSION: "2023.10.0"
           command: >
             echo "$TF_VAR_docker_token" | docker login -u "$TF_VAR_docker_user" --password-stdin &&
             cd cloudflared &&
