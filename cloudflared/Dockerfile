@@ -3,8 +3,8 @@ FROM alpine:latest
 
 # Update the package list
 RUN apk update \
-    # Install ca-certificates for SSL verification during the download
-    && apk add --no-cache ca-certificates \
+    # Install ca-certificates for SSL verification during the download and ssh client
+    && apk add --no-cache ca-certificates openssh-client \
     # Install wget to download the cloudflared binary
     && apk add --no-cache wget
 
