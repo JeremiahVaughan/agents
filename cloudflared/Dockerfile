@@ -16,6 +16,6 @@ RUN wget https://github.com/cloudflare/cloudflared/releases/latest/download/clou
 # Check if cloudflared is installed
 RUN cloudflared --version
 
-ENTRY_POINT ["/bin/sh", "-c"]
+ENTRYPOINT ["/bin/sh", "-c"]
 # The default command to run when starting the container
 #CMD ["sleep", "3000000"]
