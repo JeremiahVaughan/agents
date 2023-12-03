@@ -38,9 +38,9 @@ jobs:
             VERSION: "2023.10.0"
           command: >
             echo "$TF_VAR_docker_token" | docker login -u "$TF_VAR_docker_user" --password-stdin &&
-            cd cloudflared &&
+            cd ansible &&
             docker buildx create --use &&
-            docker buildx build --platform linux/amd64 --push -t "$TF_VAR_docker_user/cloudflared:$VERSION" .
+            docker buildx build --platform linux/amd64 --push -t "$TF_VAR_docker_user/ansible:$VERSION" .
   strengthgadget-frontend-agent-build:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
