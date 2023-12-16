@@ -60,7 +60,7 @@ jobs:
             echo "$TF_VAR_docker_token" | docker login -u "$TF_VAR_docker_user" --password-stdin &&
             cd database_nuker &&
             docker buildx create --use &&
-            docker buildx build --platform linux/arm64 --push -t "$TF_VAR_docker_user/database_nuker:$VERSION" .
+            docker buildx build --platform linux/arm64 --push -t "$TF_VAR_docker_user/database-nuker:$VERSION" .
   strengthgadget-frontend-agent-build:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
