@@ -37,7 +37,7 @@ func main() {
 	}
 	_, err = CockroachConnectionPool.Exec(
 		ctx,
-		"DROP DATABASE IF EXISTS \"$1\" CASCADE",
+		"DROP DATABASE IF EXISTS $1 CASCADE",
 		dbName,
 	)
 	if err != nil {
@@ -46,7 +46,7 @@ func main() {
 
 	_, err = CockroachConnectionPool.Exec(
 		ctx,
-		"CREATE DATABASE \"$1\"",
+		"CREATE DATABASE $1",
 		dbName,
 	)
 	if err != nil {
