@@ -83,7 +83,7 @@ jobs:
             docker buildx build --platform linux/amd64 --push -t "$TF_VAR_docker_user/strengthgadget-frontend-agent:$VERSION" .
 
 workflows:
-  one-password-agent:
+  agents:
     jobs:
       - one-password-agent-build:
           context: context-docker-hub
