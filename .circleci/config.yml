@@ -41,6 +41,26 @@ jobs:
             cd file_mover &&
             docker buildx create --use &&
             docker buildx build --platform linux/amd64 --push -t "$TF_VAR_docker_user/file_mover:$VERSION" .
+  database-nuker:
+    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+    docker:
+      - image: cimg/base:current
+    # Add steps to the job
+    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+    steps:
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - checkout
+      - run:
+          name: "Build Database Nuker"
+          environment:
+            VERSION: "0.0.1"
+          command: >
+            echo "$TF_VAR_docker_token" | docker login -u "$TF_VAR_docker_user" --password-stdin &&
+            cd database_nuker &&
+            docker buildx create --use &&
+            docker buildx build --platform linux/arm64 --push -t "$TF_VAR_docker_user/database_nuker:$VERSION" .
   strengthgadget-frontend-agent-build:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
@@ -70,4 +90,6 @@ workflows:
       - strengthgadget-frontend-agent-build:
           context: context-docker-hub
       - strengthgadget-backend-deployer:
+          context: context-docker-hub
+      - database-nuker:
           context: context-docker-hub
