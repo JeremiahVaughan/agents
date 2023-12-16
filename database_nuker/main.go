@@ -37,7 +37,7 @@ func main() {
 	}
 	_, err = CockroachConnectionPool.Exec(
 		ctx,
-		fmt.Sprintf("DROP DATABASE IF EXISTS %s CASCADE", dbName),
+		fmt.Sprintf("DROP DATABASE IF EXISTS \"%s\" CASCADE", dbName),
 	)
 	if err != nil {
 		log.Fatalf("error, when attempting to drop Cockroach database. Error: %v", err)
@@ -45,7 +45,7 @@ func main() {
 
 	_, err = CockroachConnectionPool.Exec(
 		ctx,
-		fmt.Sprintf("CREATE DATABASE %s", dbName),
+		fmt.Sprintf("CREATE DATABASE \"%s\"", dbName),
 	)
 	if err != nil {
 		log.Fatalf("error, when attempting to recreate the Cockroach database. Error: %v", err)
